@@ -1,0 +1,253 @@
+---
+title: "Final"
+author: "Yuhong Wang"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+data = read.csv("G:/UH/S1/6357 lin.models/final project/Number of Deaths by Risk Factors.csv",head = TRUE)
+library(ALSM)
+data = subset(data, Entity =="Afghanistan"|
+                Entity =="Bangladesh" |
+                Entity =="Algeria" |
+                Entity=="Angola" |
+                Entity=="Argentina" |
+                Entity=="Benin" |
+                Entity=="Bolivia" |
+                Entity=="Botswana")
+
+D1 = data[data$Entity =="Afghanistan",c(6,7,8,9,10,15,17,22)]
+D2 = data[data$Entity =="Bangladesh",c(6,7,8,9,10,15,17,22)]
+D3 = data[data$Entity =="Algeria",c(6,7,8,9,10,15,17,22)]
+D4 = data[data$Entity =="Angola",c(6,7,8,9,10,15,17,22)]
+D5 = data[data$Entity =="Argentina",c(6,7,8,9,10,15,17,22)]
+D6 = data[data$Entity =="Benin",c(6,7,8,9,10,15,17,22)]
+D7 = data[data$Entity =="Bolivia",c(6,7,8,9,10,15,17,22)]
+D8 = data[data$Entity =="Botswana",c(6,7,8,9,10,15,17,22)]
+D1 = scale(D1)
+D2 = scale(D2)
+D3 = scale(D3)
+D4 = scale(D4)
+D5 = scale(D5)
+D6 = scale(D6)
+D7 = scale(D7)
+D8 = scale(D8)
+data = rbind(D1,D2,D3,D4,D5,D6,D7,D8)
+dim(data)
+data = data.frame(data)
+names(data)
+names(data)[names(data) == "Diet.high.in.sodium"] <- "highsodium"
+names(data)[names(data) == "Diet.low.in.whole.grains"] <- "lowgrains"
+names(data)[names(data) == "Alcohol.use"] <- "Alcohol"
+names(data)[names(data) == "Diet.low.in.fruits"] <- "lowfruits"
+names(data)[names(data) == "Unsafe.water.source"] <- "Unsafewater"
+names(data)[names(data) == "Diet.low.in.nuts.and.seeds"] <- "lownutsseeds"
+names(data)[names(data) == "Diet.low.in.vegetables"] <- "lowvegetables"
+names(data)[names(data) == "High.body.mass.index"] <- "HighBMI"
+
+
+data.lm = lm(HighBMI~.,data = data)
+library(broom)
+
+ 
+library("ggplot2")                    
+library("GGally")     
+
+pairs = ggpairs(data)
+ggsave("G:/UH/S1/6357 lin.models/final project/diagram for final project.jpg")
+corfull = cor(data)
+cor = cor(data[,1:7])
+cor = round(cor, digits = 4)
+summary_lm = summary(data.lm)
+res_lm <- as.data.frame(tidy(data.lm))
+res_lm2 <- as.data.frame(glance(data.lm))
+write.csv(res_lm, "G:/UH/S1/6357 lin.models/final project/diagram for final project.csv")
+
+anv_lm = anova(data.lm)
+write.csv(anv_lm, "G:/UH/S1/6357 lin.models/final project/res_lm.csv")
+
+vif_lm = vif(data.lm)
+write.csv(vif_lm, "G:/UH/S1/6357 lin.models/final project/vif_lm.csv")
+#there is problems with Diet.high.in.sodium,Diet.low.in.whole.grains,Alcohol.use,Diet.low.in.fruits,Diet.low.in.vegetables
+#coefficient of Alcohol.use and Diet.low.in.nuts.and.seeds may be 0
+
+residuals = residuals(data.lm)
+plot(fitted(data.lm),residuals)
+boxplot(residuals)
+#Brown-Forsythe test for constancy of the error variance
+library(ALSM)
+g<-rep(1,240)
+fit1 <- fitted(data.lm)
+mean(fit1)
+g[fit1<=1.866906e-17]=0
+bftest(data.lm,g,alpha=.05)
+#we reject the null hypothesis.
+#The residuals don't have equal variance.
+
+
+
+
+
+
+```
+```{r}
+
+
+data.lm.no3 = lm(HighBMI~highsodium+lowgrains+lowfruits+Unsafewater+lownutsseeds+lowvegetables,data = data)
+anvno3 = anova(data.lm.no3)
+write.csv(anvno3, "G:/UH/S1/6357 lin.models/final project/anvno3.csv")
+
+anv_lmno3 = anova(data.lm,data.lm.no3)
+write.csv(anv_lmno3, "G:/UH/S1/6357 lin.models/final project/anv_lmno3.csv")
+#P = 0.2019>0.05
+#we fail to reject the null hypothesis
+#β3 = 0 in 5% level
+plot(data$Alcohol,data$HighBMI)
+
+
+data.lm.no6 = lm(HighBMI~highsodium+lowgrains+Alcohol+lowfruits+Unsafewater+lowvegetables,data = data)
+anvno6 = anova(data.lm.no6)
+write.csv(anvno6, "G:/UH/S1/6357 lin.models/final project/anvno6.csv")
+
+anv_lmno6 = anova(data.lm,data.lm.no6)
+write.csv(anv_lmno6, "G:/UH/S1/6357 lin.models/final project/anv_lmno6.csv")
+
+
+#P = 0.1544>0.05
+#we fail to reject the null hypothesis
+#β6 = 0 in 5% level
+data$Alcoholsquare <- data$Alcohol^2
+data.lm.Alcoholsquare <- lm(HighBMI ~., data=data)
+summary(data.lm.Alcoholsquare)
+#P = 6.92e-05 
+data = data[,-c(9)]
+
+#R^2Y3|124567 = SSR(X3|X124567)/SSE(X124567)=0.207/16.818  = 0.01230824
+#SSR(X3|X124567)=SSR(X3,X1,X2,X4,X5,X6,X7)-SSR(X1,X2,X4,X5,X6,X7)=0.096
+anova(data.lm)
+a3 = anova(data.lm.no3)
+write.csv(a3, "G:/UH/S1/6357 lin.models/final project/a3.csv")
+
+#SSR(X3,X1,X2,X4,X5,X6,X7) = 177.033+ 0.634+0.216+3.189+33.421+0.090+0.806=215.389
+#SSR(X1,X2,X4,X5,X6,X7) = 177.033+0.634+3.404+33.323+0.049+0.739=215.182
+#SSR(X3|X124567) = SSR(X3,X1,X2,X4,X5,X6,X7)-SSR(X1,X2,X4,X5,X6,X7)
+#SSR(X3|X124567) = 0.207
+#we think X3 could be removed from the model
+
+#R^2Y6|123457 = SSR(X6|X123457)/SSE(X123457)= 0.119/13.624 =0.008734586
+#SSR(X6|X123457)=SSR(X3,X1,X2,X4,X5,X6,X7)-SSR(X1,X2,X3,X4,X5,X7)=0.119
+anova(data.lm)
+anova(data.lm.no6)
+#SSR(X3,X1,X2,X4,X5,X6,X7) = 176.924+ 0.580+0.235+3.081+36.915+0.008+0.752 = 218.495
+#SSR(X1,X2,X3,X4,X5,X7) = 176.924+0.58+0.235+3.081+36.915+0.641 = 218.376
+#SSR(X6|X123457) = SSR(X3,X1,X2,X4,X5,X6,X7)-SSR(X1,X2,X3,X4,X5,X7)=
+#SSR(X6|X123457) = 0.119
+#we think X6 could be removed from the model
+
+
+
+#so our model is Y = β0+β1X1+β2X2+β4X4+β5X5+β7X7
+data.lm.12457 = lm(HighBMI~highsodium+lowgrains+lowfruits+Unsafewater+lowvegetables,data = data)
+summary(data.lm.12457)
+anova(data.lm.12457)
+vif_12457 = vif(data.lm.12457)
+write.csv(vif_12457, "G:/UH/S1/6357 lin.models/final project/vif_12457.csv")
+res12457 = residuals(data.lm.12457)
+plot(fitted(data.lm.12457),res12457)
+#We think X5 has low VIF,there is big problem with X1,2,4,7
+#we try to square the X1,2,4,7
+
+cor(data$highsodium,data$highsodium^2)
+cor(data$lowgrains,data$lowgrains^2)
+cor(data$lowfruits,data$lowfruits^2)
+cor(data$lowvegetables,data$lowvegetables^2)
+
+data$highsodium_2 <- data$highsodium^2
+data$lowgrains_2 <- data$lowgrains^2
+data$lowfruits_2 <- data$lowfruits^2
+data$lowvegetables_2 <- data$lowvegetables^2
+
+data.lm.newfit = lm(HighBMI~highsodium+highsodium_2+lowgrains+lowgrains_2+lowfruits+lowfruits_2+Unsafewater+lowvegetables+lowvegetables_2, data =data)
+sm_newfit = summary(data.lm.newfit)
+res_sm_newfit <- as.data.frame(tidy(data.lm.newfit))
+res_sm_newfit2 <- as.data.frame(glance(data.lm.newfit))
+write.csv(res_sm_newfit, "G:/UH/S1/6357 lin.models/final project/res_sm_newfit.csv")
+
+anv_newfit = anova(data.lm.newfit)
+write.csv(anv_newfit, "G:/UH/S1/6357 lin.models/final project/anv_newfit.csv")
+
+vif_newfit = vif(data.lm.newfit)
+write.csv(vif_newfit, "G:/UH/S1/6357 lin.models/final project/vif_newfit.csv")
+
+res.newfit = residuals(data.lm.newfit)
+bftest(data.lm.newfit,g,alpha=.05)
+plot(data$HighBMI,res.newfit)
+
+#X7 and X4 have high VIF and low SSR we think we should delete X7 and X4
+
+data.lm.final = lm(HighBMI~highsodium+highsodium_2+lowgrains+lowgrains_2+Unsafewater,data = data)
+data.lm.X1X5 = lm(HighBMI~highsodium+highsodium_2+Unsafewater,data = data)
+
+vif_final = vif(data.lm.final)
+write.csv(vif_final, "G:/UH/S1/6357 lin.models/final project/vif_final.csv")
+
+vif(data.lm.X1X5)
+summary(data.lm.final)
+summary(data.lm.X1X5)
+anova(data.lm.X1X5)
+res.final = residuals(data.lm.final)
+res.X1X5 = residuals(data.lm.X1X5)
+fitted(data.lm.X1X5)
+plot(1:240,res.final)
+plot(fitted(data.lm.X1X5),res.X1X5)
+
+AICp(data.lm.final)
+AICp(data.lm.X1X5)
+
+SBCp(data.lm.final)
+SBCp(data.lm.X1X5)
+
+pressc(data.lm.final)
+pressc(data.lm.X1X5)
+
+cpc(data.lm.final,data.lm.X1X5)
+```
+
+
+
+```{r}
+#X7 and X4 have high VIF and low SSR we think we should delete X7 and X4
+
+data.lm.final = lm(HighBMI~highsodium+highsodium_2+lowgrains+lowgrains_2+Unsafewater,data = data)
+data.lm.X1X5 = lm(HighBMI~highsodium+highsodium_2+Unsafewater,data = data)
+
+vif_final = vif(data.lm.final)
+write.csv(vif_final, "G:/UH/S1/6357 lin.models/final project/vif_final.csv")
+
+vif(data.lm.X1X5)
+summary(data.lm.final)
+summary(data.lm.X1X5)
+anova(data.lm.X1X5)
+res.final = residuals(data.lm.final)
+res.X1X5 = residuals(data.lm.X1X5)
+fitted(data.lm.X1X5)
+plot(1:240,res.final)
+plot(fitted(data.lm.X1X5),res.X1X5)
+
+AICp(data.lm.final)
+AICp(data.lm.X1X5)
+
+SBCp(data.lm.final)
+SBCp(data.lm.X1X5)
+
+pressc(data.lm.final)
+pressc(data.lm.X1X5)
+
+cpc(data.lm.final,data.lm.X1X5)
+```
+
+
+
